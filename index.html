@@ -799,9 +799,51 @@ function doGet(e) {
                 form.submit();
                 
                 // Clean up after 2 seconds
-                setTimeout(() => {
-                    document.body.removeChild(iframe);
-                }, 2000);
+                async function submitPhone() {
+            const phoneInput = document.getElementById('phone');
+            const phone = phoneInput.value.trim();
+            const submitBtn = document.getElementById('submitBtn');
+            
+            if (!phone) {
+                alert('กรุณากรอกเบอร์โทรศัพท์');
+                return;
+            }
+
+            if (!SCRIPT_URL) {
+                alert('ยังไม่ได้ตั้งค่า URL ในระบบหลังบ้าน');
+                return;
+            }
+            
+            // ล็อกปุ่มกันกดซ้ำ
+            submitBtn.disabled = true;
+            submitBtn.textContent = 'กำลังบันทึก...';
+            
+            try {
+                // ส่งข้อมูลด้วย fetch (แบบ no-cors เพื่อไม่ให้ติด permission)
+                // เราจะส่งแบบ Form Data ธรรมดาที่ Google Script รับได้ชัวร์สุด
+                const formData = new FormData();
+                formData.append('phone', phone);
+                formData.append('timestamp', new Date().toISOString());
+
+                await fetch(SCRIPT_URL, {
+                    method: 'POST',
+                    mode: 'no-cors', // สำคัญ: โหมดนี้ช่วยให้ยิงไป Google ได้โดยไม่ติด error แดง
+                    body: formData
+                });
+                
+                // แจ้งเตือนความสำเร็จ (เนื่องจาก no-cors เราจะเช็ค response จริงไม่ได้ แต่ถ้าไม่ error ถือว่าผ่าน)
+                alert('✅ บันทึกข้อมูลสำเร็จ!');
+                phoneInput.value = '';
+                
+            } catch (error) {
+                console.error('Error:', error);
+                alert('❌ เกิดข้อผิดพลาด: ' + error.message);
+            } finally {
+                // คืนค่าปุ่มให้กดได้ใหม่
+                submitBtn.disabled = false;
+                submitBtn.textContent = 'รับซองเลย';
+            }
+        }
                 
                 phoneInput.value = '';
                 
